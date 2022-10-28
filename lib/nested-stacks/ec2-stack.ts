@@ -1,21 +1,20 @@
 import { NestedStack, NestedStackProps } from "aws-cdk-lib";
-import { CfnKeyPair, IInstance, Instance, InstanceClass, InstanceSize, InstanceType, ISecurityGroup, ISubnet, IVpc, MachineImage } from "aws-cdk-lib/aws-ec2";
+import { CfnKeyPair, IInstance, Instance, InstanceClass, InstanceSize, InstanceType, ISecurityGroup, ISubnet, IVpc, MachineImage, SubnetFilter } from "aws-cdk-lib/aws-ec2";
 import { Construct } from "constructs";
 
 interface Ec2StackProps extends NestedStackProps {
   envName: string;
   appName: string;
   vpc: IVpc;
-  subnets: { [key: string]: ISubnet },
   bastionHostSecurityGroup: ISecurityGroup
 }
 
 export class Ec2Stack extends NestedStack {
-  private readonly bastionHosts: IInstance[];
+  private readonly bastionHost: IInstance;
   private readonly keypair: CfnKeyPair;
 
-  public getBastionHosts() {
-    return this.bastionHosts;
+  public getBastionHost() {
+    return this.bastionHost;
   }
 
   public getKeypair() {
@@ -32,25 +31,22 @@ export class Ec2Stack extends NestedStack {
       keyType: "rsa"
     });
 
-    const bastionHostSubnets = Object.keys(props.subnets)
-      .filter(v => v.includes("bastion"))
-      .map(v => props.subnets[v]);
+    const subnet = props.vpc.selectSubnets({
+      subnetGroupName: `${envName}-${appName}-public-bastion-host-subnet`
+    }).subnets[0];
 
-    this.bastionHosts = bastionHostSubnets.map(subnet => {
-      return new Instance(this, `${envName}-${appName}-${subnet.availabilityZone}-bastion-host`, {
-        instanceName: `${envName}-${appName}-${subnet.availabilityZone}-bastion-host`,
-        instanceType: InstanceType.of(InstanceClass.T3, InstanceSize.MICRO),
-        machineImage: MachineImage.latestAmazonLinux(),
-        vpc: props.vpc,
-        allowAllOutbound: true,
-        availabilityZone: subnet.availabilityZone,
-        securityGroup: props.bastionHostSecurityGroup,
-        vpcSubnets: {
-          availabilityZones: [subnet.availabilityZone],
-          subnets: [subnet]
-        },
-        keyName: this.keypair.keyName
-      });
-    });
+    this.bastionHost = new Instance(this, "bastion-host", {
+      instanceName: `${envName}-${appName}-bastion-host`,
+      instanceType: InstanceType.of(InstanceClass.T3, InstanceSize.MICRO),
+      machineImage: MachineImage.latestAmazonLinux(),
+      vpc: props.vpc,
+      vpcSubnets: {
+        subnets: [subnet]
+      },
+      availabilityZone: subnet.availabilityZone,
+      securityGroup: props.bastionHostSecurityGroup,
+      allowAllOutbound: true,
+      keyName: this.keypair.keyName
+    })
   }
 }
