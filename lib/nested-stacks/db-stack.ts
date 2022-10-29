@@ -1,7 +1,6 @@
 import { Duration, NestedStack, NestedStackProps } from "aws-cdk-lib";
-import { ISecurityGroup, ISubnet, IVpc } from "aws-cdk-lib/aws-ec2";
-import { AuroraCapacityUnit, Credentials, DatabaseClusterEngine, ISubnetGroup, ServerlessCluster, SubnetGroup } from "aws-cdk-lib/aws-rds";
-import { ISecret, SecretTargetAttachment } from "aws-cdk-lib/aws-secretsmanager";
+import { ISecurityGroup, IVpc } from "aws-cdk-lib/aws-ec2";
+import { AuroraCapacityUnit, Credentials, DatabaseClusterEngine, ServerlessCluster, SubnetGroup } from "aws-cdk-lib/aws-rds";
 import { Construct } from "constructs";
 
 interface DbStackProps extends NestedStackProps {
