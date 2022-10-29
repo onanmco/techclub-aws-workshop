@@ -1,6 +1,6 @@
 import { Duration, NestedStack, NestedStackProps } from "aws-cdk-lib";
 import { ISecurityGroup, IVpc } from "aws-cdk-lib/aws-ec2";
-import { AuroraCapacityUnit, Credentials, DatabaseClusterEngine, ServerlessCluster, SubnetGroup } from "aws-cdk-lib/aws-rds";
+import { AuroraCapacityUnit, AuroraPostgresEngineVersion, Credentials, DatabaseClusterEngine, ParameterGroup, ServerlessCluster, SubnetGroup } from "aws-cdk-lib/aws-rds";
 import { Construct } from "constructs";
 
 interface DbStackProps extends NestedStackProps {
@@ -24,7 +24,9 @@ export class DbStack extends NestedStack {
 
     this.dbCluster = new ServerlessCluster(this, "db-cluster", {
       clusterIdentifier: `${envName}-${appName}-db-cluster`,
-      engine: DatabaseClusterEngine.AURORA_POSTGRESQL,
+      engine: DatabaseClusterEngine.auroraPostgres({
+        version: AuroraPostgresEngineVersion.VER_14_3
+      }),
       defaultDatabaseName: "postgres",
       credentials: Credentials.fromGeneratedSecret(
         "admin",
