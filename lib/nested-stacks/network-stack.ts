@@ -1,5 +1,6 @@
 import { NestedStack, NestedStackProps } from "aws-cdk-lib";
 import { ISecurityGroup, ISubnet, IVpc, Peer, Port, SecurityGroup, Subnet, SubnetType, Vpc } from "aws-cdk-lib/aws-ec2";
+import { ISubnetGroup, SubnetGroup } from "aws-cdk-lib/aws-rds";
 import { Construct } from "constructs";
 
 interface NetworkStackProps extends NestedStackProps {
@@ -13,6 +14,7 @@ export class NetworkStack extends NestedStack {
   private readonly lambdaSecurityGroup: ISecurityGroup;
   private readonly dbSecurityGroup: ISecurityGroup;
   private readonly bastionHostSubnet: ISubnet;
+  private readonly dbsubnetGroup: ISubnetGroup;
 
   public getVpc() {
     return this.vpc;
@@ -28,6 +30,14 @@ export class NetworkStack extends NestedStack {
 
   public getDbSecurityGroup() {
     return this.dbSecurityGroup;
+  }
+
+  public getBastionHostSubnet() {
+    return this.bastionHostSubnet;
+  }
+
+  public getDbSubnetGroup() {
+    return this.dbsubnetGroup;
   }
 
   constructor(scope: Construct, id: string, props: NetworkStackProps) {
@@ -54,7 +64,7 @@ export class NetworkStack extends NestedStack {
           subnetType: SubnetType.PRIVATE_WITH_EGRESS
         },
         {
-          name: `${envName}-${appName}-private-rds-subnet`,
+          name: `${envName}-${appName}-private-db-subnet`,
           cidrMask: 22,
           subnetType: SubnetType.PRIVATE_ISOLATED
         }
@@ -68,7 +78,8 @@ export class NetworkStack extends NestedStack {
     this.bastionHostSubnet = new Subnet(this, "bastion-host-subnet", {
       vpcId: this.vpc.vpcId,
       availabilityZone: this.vpc.availabilityZones[0],
-      cidrBlock: "172.16.24.0/22"
+      cidrBlock: "172.16.24.0/22",
+      mapPublicIpOnLaunch: true
     });
 
     this.bastionHostSecurityGroup = new SecurityGroup(this, "bastion-host-sg", {
@@ -106,5 +117,14 @@ export class NetworkStack extends NestedStack {
       Port.tcp(5432),
       "From Lambda to DB."
     );
+
+    this.dbsubnetGroup = new SubnetGroup(this, "db-subnet-group", {
+      subnetGroupName: `${envName}-${appName}-db-subnet-group`,
+      description: "Subnet group for RDS",
+      vpc: this.vpc,
+      vpcSubnets: this.vpc.selectSubnets({
+        subnetGroupName: `${envName}-${appName}-private-db-subnet`
+      })
+    })
   }
 }

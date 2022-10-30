@@ -1,6 +1,6 @@
 import { Duration, NestedStack, NestedStackProps } from "aws-cdk-lib";
 import { ISecurityGroup, IVpc } from "aws-cdk-lib/aws-ec2";
-import { AuroraCapacityUnit, AuroraPostgresEngineVersion, Credentials, DatabaseClusterEngine, ParameterGroup, ServerlessCluster, SubnetGroup } from "aws-cdk-lib/aws-rds";
+import { AuroraCapacityUnit, AuroraPostgresEngineVersion, Credentials, DatabaseClusterEngine, ISubnetGroup, ParameterGroup, ServerlessCluster, SubnetGroup } from "aws-cdk-lib/aws-rds";
 import { Construct } from "constructs";
 
 interface DbStackProps extends NestedStackProps {
@@ -8,6 +8,7 @@ interface DbStackProps extends NestedStackProps {
   appName: string;
   vpc: IVpc,
   dbSecurityGroup: ISecurityGroup;
+  dbSubnetGroup: ISubnetGroup;
 }
 
 export class DbStack extends NestedStack {
@@ -25,11 +26,11 @@ export class DbStack extends NestedStack {
     this.dbCluster = new ServerlessCluster(this, "db-cluster", {
       clusterIdentifier: `${envName}-${appName}-db-cluster`,
       engine: DatabaseClusterEngine.auroraPostgres({
-        version: AuroraPostgresEngineVersion.VER_14_3
+        version: AuroraPostgresEngineVersion.VER_11_13
       }),
       defaultDatabaseName: "postgres",
       credentials: Credentials.fromGeneratedSecret(
-        "admin",
+        "postgres",
         {
           secretName: `${envName}/${appName}/db-credentials`,
         }
@@ -37,9 +38,9 @@ export class DbStack extends NestedStack {
       securityGroups: [props.dbSecurityGroup],
       vpc: props.vpc,
       vpcSubnets: {
-        subnetGroupName: `${envName}-${appName}-private-rds-subnet`
+        subnetGroupName: `${envName}-${appName}-private-db-subnet`
       },
-      subnetGroup: SubnetGroup.fromSubnetGroupName(this, "db-subnet-group", `${envName}-${appName}-private-rds-subnet`),
+      subnetGroup: props.dbSubnetGroup,
       scaling: {
         autoPause: Duration.days(1),
         minCapacity: AuroraCapacityUnit.ACU_2,
