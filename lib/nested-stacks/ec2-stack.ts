@@ -7,7 +7,6 @@ interface Ec2StackProps extends NestedStackProps {
   appName: string;
   vpc: IVpc;
   bastionHostSecurityGroup: ISecurityGroup;
-  bastionHostSubnet: ISubnet;
 }
 
 export class Ec2Stack extends NestedStack {
@@ -32,15 +31,19 @@ export class Ec2Stack extends NestedStack {
       keyType: "rsa"
     });
 
+    const subnet = props.vpc.selectSubnets({
+      subnetGroupName: `${envName}-${appName}-public-nat-gw-subnets`
+    }).subnets[0];
+
     this.bastionHost = new Instance(this, "bastion-host", {
       instanceName: `${envName}-${appName}-bastion-host`,
       instanceType: InstanceType.of(InstanceClass.T3, InstanceSize.MICRO),
       machineImage: MachineImage.latestAmazonLinux(),
       vpc: props.vpc,
       vpcSubnets: {
-        subnets: [props.bastionHostSubnet]
+        subnets: [subnet]
       },
-      availabilityZone: props.bastionHostSubnet.availabilityZone,
+      availabilityZone: subnet.availabilityZone,
       securityGroup: props.bastionHostSecurityGroup,
       allowAllOutbound: true,
       keyName: this.keypair.keyName

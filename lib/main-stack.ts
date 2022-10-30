@@ -40,7 +40,6 @@ export class MainStack extends cdk.Stack {
       appName,
       vpc: networkStack.getVpc(),
       bastionHostSecurityGroup: networkStack.getBastionHostSecurityGroup(),
-      bastionHostSubnet: networkStack.getBastionHostSubnet(),
       description: "Creates EC2 instances."
     });
 
@@ -58,9 +57,16 @@ export class MainStack extends cdk.Stack {
       description: "Creates Lambda functions."
     });
 
+    const {
+      clusterEndpoint: {
+        hostname: dbHost,
+        port: dbPort
+      }
+    } = dbStack.getDbCluster();
+
     new CfnOutput(this, "ssh-port-forwarding-command", {
       exportName: "ssh-port-forwarding-command",
-      value: `ssh -i keypair.pem -N -L 5432:${dbStack.getDbCluster().clusterEndpoint}:5432 ec2-user@${ec2Stack.getBastionHost().instancePublicIp}`
+      value: `ssh -i keypair.pem -N -L ${dbPort}:${dbHost}:${dbPort} ec2-user@${ec2Stack.getBastionHost().instancePublicIp}`
     });
 
     new CfnOutput(this, "link-to-private-key", {

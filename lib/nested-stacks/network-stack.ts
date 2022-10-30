@@ -13,7 +13,6 @@ export class NetworkStack extends NestedStack {
   private readonly bastionHostSecurityGroup: ISecurityGroup;
   private readonly lambdaSecurityGroup: ISecurityGroup;
   private readonly dbSecurityGroup: ISecurityGroup;
-  private readonly bastionHostSubnet: ISubnet;
   private readonly dbsubnetGroup: ISubnetGroup;
 
   public getVpc() {
@@ -30,10 +29,6 @@ export class NetworkStack extends NestedStack {
 
   public getDbSecurityGroup() {
     return this.dbSecurityGroup;
-  }
-
-  public getBastionHostSubnet() {
-    return this.bastionHostSubnet;
   }
 
   public getDbSubnetGroup() {
@@ -73,13 +68,6 @@ export class NetworkStack extends NestedStack {
       natGatewaySubnets: {
         subnetGroupName: `${envName}-${appName}-public-nat-gw-subnets`
       }
-    });
-
-    this.bastionHostSubnet = new Subnet(this, "bastion-host-subnet", {
-      vpcId: this.vpc.vpcId,
-      availabilityZone: this.vpc.availabilityZones[0],
-      cidrBlock: "172.16.24.0/22",
-      mapPublicIpOnLaunch: true
     });
 
     this.bastionHostSecurityGroup = new SecurityGroup(this, "bastion-host-sg", {
